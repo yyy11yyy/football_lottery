@@ -1,0 +1,49 @@
+from lxml import etree
+import requests,json
+from bs4 import BeautifulSoup
+import parsel
+import random
+from fake_useragent import UserAgent
+import tempfile
+from urllib.parse import urlencode 
+import time
+
+def get_urlnumList(headers,date1,date2):
+    url_row = 'https://webapi.sporttery.cn/gateway/jc/football/getMatchResultV1.qry?matchPage=1&matchBeginDate=2021-07-{}&matchEndDate=2021-07-{}&leagueId=&pageSize=30&pageNo=1&isFix=0&pcOrWap=1'
+    url = url_row.format(date1,date2)
+    r = requests.get(url,headers=headers,timeout=30).json()
+    url_num = r['value']['matchResult']
+    num_list = []
+    for i in url_num:
+        num_list.append(i['matchId'])
+    return num_list
+def get_content(url,headers): 
+    r = requests.get(url,headers=headers,timeout=30).json()
+    list_con = r['value']['oddsHistory']['crsList']
+    list_con2 = r['value']['oddsHistory']
+    name2 = list_con2['awayTeamAbbName']
+    name1 = list_con2['awayTeamAllName']
+    return list_con,name1,name2
+
+def get_result(list_con,name1,name2):
+    time.sleep(3)
+    pub_dict = list_con[0]
+    my_dict = {}
+    print(name1+"   VS     "+name2)
+    for key,value  in pub_dict.items():
+        if 's' in key and float(value) != 0.0 and float(value) <= 9.5:
+            my_dict[key]=[value]
+            print (key + ":" + value)
+    print('---------------------------------------------------')
+def start(num_list,headers):
+    for i in num_list:
+        url = 'https://webapi.sporttery.cn/gateway/jc/football/getFixedBonusV1.qry?clientCode=3001&matchId={}'
+        url = url.format(i)
+        get_result(get_content(url,headers)[0],get_content(url,headers)[1],get_content(url,headers)[2])
+
+if __name__ == '__main__':
+    ua=UserAgent()
+    headers={"User-Agent":ua.random}
+    date1 = input('date1:')
+    date2 = input('date2:')
+    start(get_urlnumList(headers,date1,date2),headers)
